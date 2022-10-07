@@ -1,0 +1,268 @@
+---
+title: "Analysis of ImComp experiment."
+output: html_document
+---
+
+Author: Javier Ortiz-Tudela (Goethe Uni)
+Started on: 21.09.22
+Last updated on: 22.09.22
+
+```{r setup, include=FALSE}
+## Load libraries.
+library(ggpubr)
+library(rstatix)
+# library(psycho)
+# library(gridExtra)
+library(dplyr)
+
+## Set directories
+if(Sys.info()["sysname"]=="Linux"){
+  main_dir <- "/home/javier/PowerFolders/CD_restart/"
+}else{
+  main_dir <- "/Users/javierortiz/PowerFolders/CD_restart"
+}
+
+version = "elliot"
+data_dir <- paste(main_dir , "versions", version, sep="/")
+
+# Plotting function
+make_plot <- function(df, data_to_plot, title) {
+  # Select y axis limits for accuracy
+  if(grepl("acc", title, fixed = TRUE)){
+    ylim=c(0,1)
+  }else{
+    ylim=""
+  }
+  
+  ggplot(data = df,
+         aes(x = congruity, y = data_to_plot, fill=congruity)) +
+    geom_boxplot(position = position_nudge(x = 0, y = 0), alpha = .4)+
+    geom_point(size = 1, alpha = 0.3) +
+    geom_line(aes(group = participant), alpha = .3) +
+    stat_summary(fun= mean, geom="point", shape=20, size=7, color="red", fill="red") +
+    ggtitle(title) +
+    ylim(ylim) +
+    ylab(title) +
+    labs(fill='Congruency') +
+    theme(plot.title.position = "plot")
+}
+
+```
+
+```{r load data, include=FALSE}
+
+## Which subs?
+which_subs = c(1:20)
+
+## Read-in the data
+for (c_sub in which_subs){
+  # Get subject code
+  sub_code <- paste("sub-", sprintf("%02d", c_sub), sep="")
+  
+  # Since the data is in a CSV file, you can read it with the csvread functi
+  filename = paste(sub_code, "_task-", version, "_merged.csv", sep="")
+  temp <- read.csv2(paste(data_dir,  "data/beh", sub_code,filename, sep="/"), sep=",")
+    
+  if (c_sub == 1){
+    full_data <- temp
+  } else{
+    full_data <- rbind(full_data, temp)
+  }
+}
+
+# Turn RT to seconds
+full_data$cd_rt <- full_data$cd_rt/1000
+
+# Fix some R stuff
+full_data <- full_data %>% filter(OvsN == "old")
+# full_data$cd_acc <- as.numeric(levels(full_data$cd_acc))[full_data$cd_acc]
+# full_data$cd_rt <- as.numeric(levels(full_data$cd_rt))[full_data$cd_rt]
+# full_data$cd_id <- as.numeric(levels(full_data$cd_id))[full_data$cd_id]
+full_data$participant <- as.factor(full_data$participant)
+full_data$congruity <- as.factor(full_data$congruity)
+
+```
+
+## Compute overall performance
+
+
+```{r}
+# Aggregate
+agg_data <- full_data %>% 
+  group_by(participant, changeness) %>% 
+  summarise(mean_acc = mean(cd_acc),
+            sd_acc = sd(cd_acc))
+
+# Plot
+ggplot(data = agg_data,
+       mapping = aes(x=changeness, y = mean_acc, color = changeness)) +
+  geom_boxplot() +
+  geom_jitter(shape=10, position=position_jitter(0.2)) +
+  ylab("Mean acc") + 
+  # ylim(c(0,1)) +
+  labs(title = paste("Overall acc"))
+
+```
+
+A rather arbitrary threshold of .4 to include _bad luck_ participants which might have encountered a long train of mismatch trials. I should probably re-consider this.
+
+```{r}
+# Poor performers
+poor_performers <- agg_data$participant[agg_data$mean_acc < .4]
+
+# Remove poor performers
+full_data <- full_data %>%
+  filter(!(participant %in% poor_performers))
+
+# Aggregate
+agg_data <- full_data %>% 
+  group_by(participant, changeness) %>% 
+  summarise(mean_acc = mean(cd_acc),
+            sd_acc = sd(cd_acc))
+
+# Plot clean sample
+ggplot(data = agg_data,
+       mapping = aes(x=changeness, y = mean_acc, color = changeness)) +
+  geom_boxplot() +
+  geom_jitter(shape=10, position=position_jitter(0.2)) +
+  ylab("Mean acc") + 
+  ylim(c(0,1)) +
+  labs(title = paste("Overall acc"))
+
+```
+After removing bad performers, we can aggregate by congruity and scene type to
+look at performance. We will first code the scene type in two "sparse vs cluttered"
+
+```{r}
+# Aggregate
+agg_data <- full_data %>% 
+  filter(changeness == "change") %>% 
+  group_by(participant, congruity) %>% 
+  summarise(mean_acc = mean(cd_acc),
+            sd_acc = sd(cd_acc))
+
+# Plot
+make_plot(agg_data, agg_data$mean_acc, "Mean acc by congruity")
+
+```
+
+## Compute performance at encoding
+And now look at performance as RTs
+```{r}
+# Aggregate
+agg_data <- full_data %>% 
+  filter(changeness == "change", cd_acc == 1) %>% 
+  group_by(participant, congruity) %>% 
+  summarise(mean_rt = mean(cd_rt, na.rm = T),
+            sd_rt = sd(cd_rt, na.rm = T))
+
+# Plot
+make_plot(agg_data, agg_data$mean_rt, "Mean RT by congruity")
+
+```
+
+## Detection efficiency
+Let's compute the detection efficiency index
+```{r}
+# Compute as acc/RT
+agg_data <- full_data %>% 
+  filter(changeness == "change") %>% 
+  group_by(participant, congruity) %>% 
+  summarise(mean_acc = mean(cd_acc), sd_acc = sd(cd_acc),
+            mean_rt = mean(cd_rt, na.rm = T), sd_rt = sd(cd_rt, na.rm = T)) %>% 
+  mutate(eff_ind = mean_acc/mean_rt) %>% 
+  ungroup()
+
+
+# Plot
+make_plot(agg_data, agg_data$eff_ind, "Mean efficiency by congruity")
+ 
+```
+
+## Compute rANOVA
+I will compute a 2 repeated measures ANOVA with scene-object congruity (congruent vs. incongruent) as within-subjects factor.
+```{r}
+# Need to select only the to-be-used columns
+data_to_stat <-  subset(x = agg_data, select = c(participant, congruity, eff_ind))
+
+# Run ANOVA
+res.aov <- anova_test(data = data_to_stat, dv = eff_ind, wid = participant, within = congruity)
+get_anova_table(res.aov)
+
+# Pair-wise comparisons
+pwc <- data_to_stat %>%
+  pairwise_t_test(
+    eff_ind ~ congruity, paired = TRUE,
+    p.adjust.method = "bonferroni"
+  )
+pwc
+
+```
+
+# Identification
+```{r}
+# Aggregate
+agg_data <- full_data %>% 
+  filter(changeness == "change") %>% 
+  filter(cd_acc == 1) %>% 
+  group_by(participant, congruity) %>% 
+  summarise(mean_id = mean(id_acc, na.rm = T),
+            sd_id = sd(id_acc, na.rm = T)) %>% 
+  ungroup()
+
+# Plot
+make_plot(agg_data, agg_data$mean_id, "Mean identification accuracy by congruity")
+
+```
+
+## Compute rANOVA
+
+```{r}
+# Need to select only the to-be-used columns
+data_to_stat <-  subset(x = agg_data, select = c(participant, congruity, mean_id))
+
+# Run ANOVA
+res.aov <- anova_test(data = data_to_stat, dv = mean_id, wid = participant, within = congruity)
+get_anova_table(res.aov)
+
+# Pair-wise comparisons
+pwc <- data_to_stat %>%
+  pairwise_t_test(
+    mean_id ~ congruity, paired = TRUE,
+    p.adjust.method = "bonferroni"
+  )
+pwc
+
+```
+# Recognition
+```{r}
+# Aggregate
+agg_data <- full_data %>% 
+  filter(changeness == "change") %>% 
+  filter(cd_acc == 1) %>% 
+  group_by(participant, congruity) %>% 
+  summarise(mean_rec = mean(rec_acc, na.rm = T)) %>% 
+  ungroup()
+
+# Plot
+make_plot(agg_data, agg_data$mean_rec, "Mean recognition accuracy by congruity")
+
+```
+
+## Compute rANOVA
+
+```{r}
+# Run ANOVA
+res.aov <- anova_test(data = agg_data, dv = mean_rec, wid = participant, within = congruity)
+get_anova_table(res.aov)
+
+# Pair-wise comparisons
+pwc <- agg_data %>%
+  pairwise_t_test(
+    mean_rec ~ congruity, paired = TRUE,
+    p.adjust.method = "bonferroni"
+  )
+pwc
+
+```
+
