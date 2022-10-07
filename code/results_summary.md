@@ -27,8 +27,8 @@ Fun table to play around (to satisfy some undiagnosed OCD)
 | ------ | ------ | ------ | ------ | ------ |
 | no | yes | yes | no | There is no overall effect of IV as there is too much variability in how DV is affected by IV between participants and objects |
 | yes | no | yes | Exp3 | xxxxx |
-| yes | yes | no | xxxxx | xxxxx |
-| no | no | yes | xxxxx | xxxxx |
-| no | yes | no | xxxxx | xxxxx |
+| yes | yes | no | no | xxxxx |
+| no | no | yes | no | xxxxx |
+| no | yes | no | no | xxxxx |
 | no | no | yes | Exp1a | xxxxx |
-| no | no | no | xxxxx | ...well |
+| no | no | no | no | ...well |
