@@ -24,7 +24,7 @@ _pending_
 Fun table to play around (to satisfy some undiagnosed OCD)
 
 | Fixed effect | IV impact on participants as random effect | IV impact on objects as random effect | Found it? | Interpretation |
-| ------ | ------ | ------ | ------ |
+| ------ | ------ | ------ | ------ | ------ |
 | no | yes | yes | no | There is no overall effect of IV as there is too much variability in how DV is affected by IV between participants and objects |
 | yes | no | yes | Exp3 | xxxxx |
 | yes | yes | no | xxxxx | xxxxx |
