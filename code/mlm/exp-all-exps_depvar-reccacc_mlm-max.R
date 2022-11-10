@@ -7,10 +7,7 @@
 library(ggpubr)
 library(rstatix)
 library(lme4)
-#library(lmerTest)
-#library(gridExtra)
 library(dplyr)
-# library(tidyr)
 
 #### Set directories ####
 if(Sys.info()["sysname"]=="Linux"){
@@ -19,6 +16,7 @@ if(Sys.info()["sysname"]=="Linux"){
   main_dir <- "/Users/javierortiz/PowerFolders/CD_restart"
 }
 data_dir <- paste(main_dir , "versions/all_exps/", sep="/")
+func_dir <- paste("/Users/javierortiz/github_repos/three_indices/" , "code/_functions/", sep="/")
 
 #### Prepare data ####
 # Read in
@@ -44,11 +42,11 @@ max_model<-glmer(rec_acc ~ congruity +
                    (congruity | obj_file), 
                  data = full_data, family = binomial, 
                  control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
-max_model2<-glmer(rec_acc ~ congruity + exp + 
-                   (congruity | sub_code ) +
-                   (congruity | obj_file), 
-                 data = full_data, family = binomial, 
-                 control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+# max_model2<-glmer(rec_acc ~ congruity + exp + 
+#                    (congruity | sub_code ) +
+#                    (congruity | obj_file), 
+#                  data = full_data, family = binomial, 
+#                  control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
 # Reduced model (-1)
 red_model1a <-glmer(rec_acc ~ congruity + 
                       (congruity | sub_code) +
@@ -57,7 +55,7 @@ red_model1a <-glmer(rec_acc ~ congruity +
                     control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
 
 # Now we can compare the models. 
-anova(max_model, max_model2)
+anova(max_model, red_model1a)
 
 # As there is no significant decrease in fit, we discard individual variability 
 # in our stimuli's reaction to the congruity manipulation
@@ -101,11 +99,11 @@ anova(red_model1, red_model2b)
 
 # As there's a significant decraese in fit, we keep the individual variability 
 # in our particiapnts' overall memory. We accept red_model1 
-source('/home/javier/git_repos/premup/analysis/report_LMM.R')
-tested_models <- c(max_model,red_model1,red_model2a,red_model2b,red_model3,red_model4a,red_model4b, red_model5)
-model_names <- c("Maximal model","Reduced 1","Reduced 2a","Reduced 2b","Reduced 3","Reduced 4a","Reduced 4b", "Reduced 5")
-against_models <- c(1,2,2,3,5,5,6)
-report_title <- "Experiment 1a. Change detection"
+source(paste(func_dir, '/report_LMM.R', sep=""))
+tested_models <- c(max_model,red_model1a,red_model1b,red_model1,red_model2a,red_model2b)
+model_names <- c("Maximal model","Reduced 1a","Reduced 1b","Reduced 1","Reduced 2a","Reduced 2b")
+against_models <- c(1,1,1,4,4)
+report_title <- "Combined analysis. DV = Recognition accuracy"
 report_table <- report_LMM(tested_models, model_names,against_models,report_title)
 
 # We can explore this model with "Anova" (capital A)

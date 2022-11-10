@@ -5,7 +5,6 @@ output: html_document
 
 Author: Javier Ortiz-Tudela (Goethe Uni)
 Started on: 21.09.22
-Last updated on: 22.09.22
 
 ```{r setup, include=FALSE}
 ## Load libraries.
@@ -103,12 +102,17 @@ ggplot(data = agg_data,
   labs(title = paste("Overall acc"))
 
 ```
-
-A rather arbitrary threshold of .4 to include _bad luck_ participants which might have encountered a long train of mismatch trials. I should probably re-consider this.
+I am using here a fix threshold of .6 to identify poor performers
 
 ```{r}
+# Get data for no change trials
+agg_data <- full_data %>%
+  group_by(participant) %>%
+    filter(changeness == "no change") %>% 
+  summarise(mean_acc = mean(cd_acc))
+
 # Poor performers
-poor_performers <- agg_data$participant[agg_data$mean_acc < .4]
+poor_performers <- agg_data$participant[agg_data$mean_acc < .6]
 
 # Remove poor performers
 full_data <- full_data %>%
@@ -131,7 +135,7 @@ ggplot(data = agg_data,
 
 ```
 After removing bad performers, we can aggregate by congruity and scene type to
-look at performance. We will first code the scene type in two "sparse vs cluttered"
+look at performance.
 
 ```{r}
 # Aggregate
@@ -180,7 +184,7 @@ make_plot(agg_data, agg_data$eff_ind, "Mean efficiency by congruity")
 ```
 
 ## Compute rANOVA
-I will compute a 2x2 repeated measures ANOVA with scene-object congruity (congruent vs. incongruent) and trial type (cluttered vs. sparse) as within-subjects factors.
+I will compute a 1-way repeated measures ANOVA with scene-object congruity (congruent vs. incongruent)  as within-subjects factors.
 ```{r}
 # Need to select only the to-be-used columns
 data_to_stat <-  subset(x = agg_data, select = c(participant, congruity, eff_ind))

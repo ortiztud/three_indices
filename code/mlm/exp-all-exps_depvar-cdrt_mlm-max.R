@@ -7,10 +7,8 @@
 library(ggpubr)
 library(rstatix)
 library(lme4)
-#library(lmerTest)
-#library(gridExtra)
+library(lmerTest)
 library(dplyr)
-# library(tidyr)
 
 #### Set directories ####
 if(Sys.info()["sysname"]=="Linux"){
@@ -19,6 +17,7 @@ if(Sys.info()["sysname"]=="Linux"){
   main_dir <- "/Users/javierortiz/PowerFolders/CD_restart"
 }
 data_dir <- paste(main_dir , "versions/all_exps/", sep="/")
+func_dir <- paste("/Users/javierortiz/github_repos/three_indices/" , "code/_functions/", sep="/")
 
 #### Prepare data ####
 # Read in
@@ -79,17 +78,17 @@ red_model2 <-lmer(cd_rt ~ congruity +
 anova(red_model1b, red_model2)
 
 # As there is a significant decrease in fit, we keep individual variability 
-# in our particiapnt's overall reaction time (red_model1b)
-source('/home/javier/git_repos/premup/analysis/report_LMM.R')
-tested_models <- c(max_model,red_model1,red_model2a,red_model2b,red_model3,red_model4a,red_model4b, red_model5)
-model_names <- c("Maximal model","Reduced 1","Reduced 2a","Reduced 2b","Reduced 3","Reduced 4a","Reduced 4b", "Reduced 5")
-against_models <- c(1,2,2,3,5,5,6)
-report_title <- "Experiment 1a. Change detection"
+# in our particiapnt's overall reaction time. We keep red_model1b
+source(paste(func_dir, '/report_LMM.R', sep=""))
+tested_models <- c(max_model,red_model1a,red_model1b,red_model2)
+model_names <- c("Maximal model","Reduced 1a","Reduced 1b","Reduced 2")
+against_models <- c(1,1,2)
+report_title <- "Combined analysis. DV = CD RT"
 report_table <- report_LMM(tested_models, model_names,against_models,report_title)
 
 # We can explore this model with "Anova" (capital A)
 Anova(red_model1b)
-#summary(max_model)
+#summary(red_model1b)
 
 #### Aggregate across subjects ####
 agg_data <- full_data %>% 
